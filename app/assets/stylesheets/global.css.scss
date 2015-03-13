@@ -1,2 +1,14 @@
 @import "bootstrap-sprockets";
 @import "bootstrap";
+
+.repository-browser {
+  .tree-children {
+    list-style: none;
+  }
+
+  .selected {
+    > .node-name {
+      color: $alert-warning-text;
+    }
+  }
+}

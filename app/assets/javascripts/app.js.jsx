@@ -1,6 +1,7 @@
 var React = require('react');
 var Reflux = require('reflux');
 var _ = require('lodash');
+var classNames = require('classnames');
 
 var RepositoryActions = Reflux.createActions([
   'repositoryChanged',
@@ -89,10 +90,14 @@ var BlobNode = React.createClass({
     RepositoryActions.nodeSelected(this.props.blob);
   },
 
+  selected: function() {
+    return this.props.analysis.selectedNode == this.props.blob
+  },
+
   render: function() {
     return (
-      <li className="blob">
-        <a href="#" onClick={this.selectHandler}>
+      <li className={classNames('node', 'tree', {selected: this.selected()})}>
+        <a className="node-name" href="#" onClick={this.selectHandler}>
           <span className="glyphicon glyphicon-file"></span> {this.props.blob.name}
         </a>
       </li>
@@ -116,7 +121,7 @@ var TreeChildren = React.createClass({
       }
     }, this);
 
-    return <ul>{childNodes}</ul>
+    return <ul className="tree-children">{childNodes}</ul>
   }
 });
 
@@ -148,6 +153,10 @@ var TreeNode = React.createClass({
     return this.props.tree.expanded;
   },
 
+  selected: function() {
+    return this.props.analysis.selectedNode == this.props.tree
+  },
+
   render: function() {
     var toggleIcon, treeChildren;
 
@@ -161,8 +170,8 @@ var TreeNode = React.createClass({
     }
 
     return (
-      <li className="tree">
-        {toggleIcon} <a href={'#' + this.props.tree.path} onClick={this.selectHandler}>{this.props.tree.name}</a>
+      <li className={classNames('node', 'tree', {selected: this.selected()})}>
+        {toggleIcon} <a href={'#' + this.props.tree.path} className="node-name" onClick={this.selectHandler}>{this.props.tree.name}</a>
         {treeChildren}
       </li>
     )
@@ -178,7 +187,11 @@ var RepositoryBrowser = React.createClass({
     var root = this.props.analysis.getRoot();
     var rootChildren = this.props.analysis.getChildren(root);
     console.log("Rendering rootChildren: " + JSON.stringify(rootChildren));
-    return <TreeChildren analysis={this.props.analysis} children={rootChildren} />
+    return (
+      <div className="repository-browser">
+        <TreeChildren analysis={this.props.analysis} children={rootChildren} />
+      </div>
+    )
   }
 });
 
