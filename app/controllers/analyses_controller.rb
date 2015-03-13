@@ -1,5 +1,5 @@
 class AnalysesController < ApplicationController
-  $analyses = {}
+  $analyses ||= {}
 
   def show
     repository = Repository.find(params[:id])

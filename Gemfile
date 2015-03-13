@@ -28,8 +28,9 @@ gem 'react-rails', '~> 1.0.0.pre', github: 'reactjs/react-rails'
 gem 'bootstrap-sass'
 gem 'haml'
 gem 'github_api'
-gem 'github-linguist', git: 'https://github.com/github/linguist.git'
-gem 'github-linguist-grammars', git: 'https://github.com/github/linguist.git'
+gem 'github-linguist', require: 'linguist'
+# gem 'github-linguist', git: 'https://github.com/github/linguist.git'
+# gem 'github-linguist-grammars', git: 'https://github.com/github/linguist.git'
 
 
 # Use ActiveModel has_secure_password

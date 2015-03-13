@@ -2,6 +2,11 @@ var React = require('react');
 var Reflux = require('reflux');
 var _ = require('lodash');
 var classNames = require('classnames');
+var Ace = require('react-ace');
+var Bootstrap = require('react-bootstrap');
+var Nav = Bootstrap.Nav;
+var NavItem = Bootstrap.NavItem;
+var Input = Bootstrap.Input;
 
 var RepositoryActions = Reflux.createActions([
   'repositoryChanged',
@@ -94,18 +99,32 @@ Object.assign(Analysis.prototype, {
   }
 });
 
+
+var RepositoriesStore = Reflux.createStore({
+  load: function() {
+    var self = this;
+
+    $.getJSON('/repositories').then(function(data) {
+      self.trigger(data);
+    });
+  }
+});
+
 var AnalysisStore = Reflux.createStore({
   listenables: RepositoryActions,
 
-  onRepositoryChanged: function(repositoryId) {
+  onRepositoryChanged: function(repository) {
     var self = this;
-    $.getJSON('/analyses/' + repositoryId).then(function(data) {
-      window.data = data;
-      window.Analysis = Analysis;
 
-      self.currentAnalysis = new Analysis(data);
-      self.trigger(self.currentAnalysis);
-    });
+    if (repository) {
+      $.getJSON('/analyses/' + repository.id).then(function(data) {
+        self.currentAnalysis = new Analysis(data);
+        self.trigger(self.currentAnalysis);
+      });
+    } else {
+      this.trigger(null);
+    }
+
   },
 
   onNodeSelected: function(node) {
@@ -276,7 +295,6 @@ var ContributionStats = React.createClass({
 
     return (
       <div className="contribution-stats">
-        <h2>Contributions</h2>
         <table className="table">
           <thead>
             <tr>
@@ -295,11 +313,54 @@ var ContributionStats = React.createClass({
   }
 });
 
+var ContentNav = React.createClass({
+  propTypes: {
+    selectedContent: React.PropTypes.string,
+    onSelect: React.PropTypes.func
+  },
+
+  render: function() {
+    return (
+      <Nav bsStyle="tabs" justified activeKey={this.props.selectedContent} onSelect={this.onSelect}>
+        <NavItem eventKey="contributions" title="Contributions">Contributions</NavItem>
+        <NavItem eventKey="contents" title="Content">Content</NavItem>
+      </Nav>
+    )
+  }
+});
+
+var RepositorySelect = React.createClass({
+  propTypes: {
+    repositories: React.PropTypes.array,
+    selectedRepository: React.PropTypes.object,
+    onChange: React.PropTypes.func
+  },
+
+  render: function() {
+    if (_.isEmpty(this.props.repositories)) {
+      return <p>Loading repositories...</p>
+    } else {
+      var options = _.map(this.props.repositories, function(repo) {
+        return <option key={repo.id} value={repo.id}>{repo.name}</option>
+      });
+
+      return (
+        <Input type="select" value={this.props.selectedRepository}>
+          {options}
+        </Input>
+      )
+    }
+  }
+});
+
 var App = React.createClass({
-  mixins: [Reflux.listenTo(AnalysisStore, 'onAnalysisChanged')],
+  mixins: [
+    Reflux.listenTo(AnalysisStore, 'onAnalysisChanged'),
+    Reflux.listenTo(RepositoriesStore, 'onRepositoriesLoaded')
+  ],
 
   getInitialState: function() {
-    return { repositoryId: '1', analysis: null };
+    return {repositories: [], selectedRepository: null, selectedContent: 'contributions', analysis: null};
   },
 
   onAnalysisChanged: function(analysis) {
@@ -307,8 +368,36 @@ var App = React.createClass({
     this.setState({analysis: analysis});
   },
 
+  onContentSelected: function(selectedContent) {
+    console.log("Content selected: " + selectedContent);
+    this.setState({selectedContent: selectedContent});
+  },
+
+  onRepositoriesLoaded: function(repositories) {
+    console.log("Repositories loaded:", repositories);
+    var selectedRepository = null;
+    if (this.state.selectedRepository && _.some(repositories, {id: this.state.selectedRepository.id})) {
+      selectedRepository = this.state.selectedRepository;
+    } else {
+      selectedRepository = _.first(repositories);
+    }
+
+    console.log("Repo after load: ", selectedRepository);
+    this.setState({repositories: repositories});
+
+    if (this.state.selectedRepository != selectedRepository) {
+      this.onRepositorySelected(selectedRepository);
+    }
+  },
+
+  onRepositorySelected: function(selectedRepository) {
+    console.log("RepositorySelected: " + selectedRepository);
+    this.setState({selectedRepository: selectedRepository});
+    RepositoryActions.repositoryChanged(selectedRepository);
+  },
+
   componentDidMount: function() {
-    RepositoryActions.repositoryChanged(this.state.repositoryId);
+    RepositoriesStore.load();
   },
 
   render: function() {
@@ -335,10 +424,17 @@ var App = React.createClass({
       <div className="app">
         <h1>Git Credit!</h1>
         <div className="row">
+          <div className="col-md-4">
+            <RepositorySelect repositories={this.state.repositories} onChange={this.onRepositorySelected} />
+          </div>
+          <div className="col-md-8">
+            <ContentNav selectedContent={this.state.selectedContent} onSelect={this.onContentSelected} />
+          </div>
+        </div>
+        <div className="row">
           {browser}
           {nodePane}
         </div>
-
       </div>
     )
   }
