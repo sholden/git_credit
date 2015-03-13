@@ -50,15 +50,20 @@ class Analyzer
 
   def analyze_blob(blob)
     puts "Analyzing #{blob[:path]}"
-    blame = Rugged::Blame.new(repo, blob[:path])
 
-    if repo.lookup(blob[:oid]).binary?
-      blob[:contributions] = {}
-    else
+    if should_blame?(blob)
+      blame = Rugged::Blame.new(repo, blob[:path])
+
       blob[:contributions] = blame.each_with_object(Hash.new(0)) do |hunk, counts|
         counts[hunk[:final_signature].slice(:name, :email)] += hunk[:lines_in_hunk]
       end
+    else
+      blob[:contributions] = {}
     end
+  end
+
+  def should_blame?(blob)
+    !repo.lookup(blob[:oid]).binary?
   end
 
   def as_json
