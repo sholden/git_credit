@@ -53,8 +53,13 @@ Rails.application.routes.draw do
   #     # (app/controllers/admin/products_controller.rb)
   #     resources :products
   #   end
-  resources :analyses, only: :show
   resource :app, only: :show
+
+  resources :analyses
+
+  resources :repositories do
+    resources :blobs
+  end
 
   root to: 'app#show'
 end

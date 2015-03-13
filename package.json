@@ -10,7 +10,8 @@
     "lodash": "latest",
     "reflux": "latest",
     "es6-shim": "latest",
-    "classnames": "latest"
+    "classnames": "latest",
+    "react-ace": "latest"
   },
   "license": "MIT",
   "engines": {

@@ -1,6 +1,10 @@
 class AnalysesController < ApplicationController
+  $analyses = {}
+
   def show
-    $analysis ||= Analyzer.new('../clone').tap(&:analyze!)
-    render json: $analysis.as_json
+    repository = Repository.find(params[:id])
+    $analyses[repository.id] ||= Analyzer.new(repository.path).tap(&:analyze!)
+
+    render json: $analyses[repository.id].as_json
   end
 end

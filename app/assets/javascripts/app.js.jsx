@@ -97,9 +97,9 @@ Object.assign(Analysis.prototype, {
 var AnalysisStore = Reflux.createStore({
   listenables: RepositoryActions,
 
-  onRepositoryChanged: function(repositoryName) {
+  onRepositoryChanged: function(repositoryId) {
     var self = this;
-    $.getJSON('/analyses/' + repositoryName).then(function(data) {
+    $.getJSON('/analyses/' + repositoryId).then(function(data) {
       window.data = data;
       window.Analysis = Analysis;
 
@@ -299,7 +299,7 @@ var App = React.createClass({
   mixins: [Reflux.listenTo(AnalysisStore, 'onAnalysisChanged')],
 
   getInitialState: function() {
-    return { repositoryName: 'asdf', analysis: null };
+    return { repositoryId: '1', analysis: null };
   },
 
   onAnalysisChanged: function(analysis) {
@@ -308,7 +308,7 @@ var App = React.createClass({
   },
 
   componentDidMount: function() {
-    RepositoryActions.repositoryChanged(this.state.repositoryName);
+    RepositoryActions.repositoryChanged(this.state.repositoryId);
   },
 
   render: function() {

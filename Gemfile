@@ -20,13 +20,17 @@ gem 'jbuilder', '~> 2.0'
 # bundle exec rake doc:rails generates the API under doc/api.
 gem 'sdoc', '~> 0.4.0', group: :doc
 
-gem 'rugged'
+gem 'rugged', git: 'git://github.com/libgit2/rugged.git', submodules: true
 
 gem 'therubyracer', platforms: :ruby
 gem 'browserify-rails'
 gem 'react-rails', '~> 1.0.0.pre', github: 'reactjs/react-rails'
 gem 'bootstrap-sass'
 gem 'haml'
+gem 'github_api'
+gem 'github-linguist', git: 'https://github.com/github/linguist.git'
+gem 'github-linguist-grammars', git: 'https://github.com/github/linguist.git'
+
 
 # Use ActiveModel has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
