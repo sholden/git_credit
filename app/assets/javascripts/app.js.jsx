@@ -2,7 +2,7 @@ var React = require('react');
 var Reflux = require('reflux');
 var _ = require('lodash');
 var classNames = require('classnames');
-var Ace = require('react-ace');
+var AceEditor = require('react-ace');
 var Bootstrap = require('react-bootstrap');
 var Nav = Bootstrap.Nav;
 var NavItem = Bootstrap.NavItem;
@@ -11,13 +11,14 @@ var Input = Bootstrap.Input;
 var RepositoryActions = Reflux.createActions([
   'repositoryChanged',
   'nodeSelected',
-  'treeToggled'
+  'treeToggled',
+  'blobContentRequested'
 ]);
 
 var expandByDefault = false,
-    isTree = function(object) { return object.type === 'tree' },
-    isBlob = function(object) { return object.type === 'blob' },
-    hasContributions = function(object) { return !_.isEmpty(object.contributions) }
+    isTree = function(object) { return object && object.type === 'tree' },
+    isBlob = function(object) { return object && object.type === 'blob' },
+    hasContributions = function(object) { return object && !_.isEmpty(object.contributions) }
 
 var Analysis = function(data) {
   this.root_oid = data.root_oid;
@@ -143,6 +144,19 @@ var AnalysisStore = Reflux.createStore({
     console.log("Tree toggled: " + tree.path);
     tree.expanded = !tree.expanded;
     this.trigger(this.currentAnalysis);
+  }
+});
+
+var BlobContentStore = Reflux.createStore({
+  listenables: RepositoryActions,
+
+  onBlobContentRequested: function(repository, blob) {
+    if (!isBlob(blob)) return;
+
+    var self = this;
+    $.get('/repositories/' + repository.id + '/blobs/' + blob.oid).then(function(resp) {
+      self.trigger(resp);
+    });
   }
 });
 
@@ -313,6 +327,40 @@ var ContributionStats = React.createClass({
   }
 });
 
+var ContentEditor = React.createClass({
+  mixins: [
+    Reflux.listenTo(BlobContentStore, 'onBlobContentLoaded')
+  ],
+
+  propTypes: {
+    repository: React.PropTypes.object,
+    object: React.PropTypes.object
+  },
+
+  getInitialState: function() {
+    return {content: null};
+  },
+
+  componentDidMount: function() {
+    RepositoryActions.blobContentRequested(this.props.repository, this.props.object);
+  },
+
+  onBlobContentLoaded: function(content) {
+    this.setState({content: content});
+  },
+
+  render: function() {
+    if (!this.state.content) { return <p>No content</p> }
+
+    return <AceEditor
+      mode="java"
+      theme="github"
+      name={'ACE_' + this.props.object.oid}
+      value={this.state.content}
+    />
+  }
+});
+
 var ContentNav = React.createClass({
   propTypes: {
     selectedContent: React.PropTypes.string,
@@ -321,9 +369,9 @@ var ContentNav = React.createClass({
 
   render: function() {
     return (
-      <Nav bsStyle="tabs" justified activeKey={this.props.selectedContent} onSelect={this.onSelect}>
+      <Nav bsStyle="tabs" justified activeKey={this.props.selectedContent} onSelect={this.props.onSelect}>
         <NavItem eventKey="contributions" title="Contributions">Contributions</NavItem>
-        <NavItem eventKey="contents" title="Content">Content</NavItem>
+        <NavItem eventKey="content" title="Content">Content</NavItem>
       </Nav>
     )
   }
@@ -400,24 +448,39 @@ var App = React.createClass({
     RepositoriesStore.load();
   },
 
-  render: function() {
-    var browser = null;
-    if (this.state.analysis) {
-      browser = (
-        <div className="col-md-4">
-          <RepositoryBrowser analysis={this.state.analysis} />
-        </div>
+  renderContributorStats: function() {
+    var statsComponent;
+    if (this.state.analysis && this.state.analysis.selectedNode) {
+      var contribution_stats = this.state.analysis.getContributionStats(this.state.analysis.selectedNode);
+
+      statsComponent = (
+        <ContributionStats
+          analysis={this.state.analysis}
+          object={this.state.analysis.selectedNode}
+          contribution_stats={contribution_stats}
+        />
       )
     }
 
-    var nodePane;
-    if (this.state.analysis && this.state.analysis.selectedNode) {
-      var contribution_stats = this.state.analysis.getContributionStats(this.state.analysis.selectedNode);
-      nodePane = (
-        <div className="col-md-8">
-          <ContributionStats analysis={this.state.analysis} object={this.state.analysis.selectedNode} contribution_stats={contribution_stats} />
-        </div>
-      )
+    return statsComponent;
+  },
+
+  renderObjectContent: function() {
+    return <ContentEditor repository={this.state.selectedRepository} object={this.state.analysis.selectedNode} />
+  },
+
+  render: function() {
+    var browser = null;
+    if (this.state.analysis) {
+      browser = <RepositoryBrowser analysis={this.state.analysis} />
+    }
+
+    var selectedContent = this.state.selectedContent;
+    var contentPane;
+    if (selectedContent === 'contributions') {
+      contentPane = this.renderContributorStats();
+    } else if (selectedContent === 'content') {
+      contentPane = this.renderObjectContent();
     }
 
     return (
@@ -432,8 +495,12 @@ var App = React.createClass({
           </div>
         </div>
         <div className="row">
-          {browser}
-          {nodePane}
+          <div className="col-md-4">
+            {browser}
+          </div>
+          <div className="col-md-8">
+            {contentPane}
+          </div>
         </div>
       </div>
     )
