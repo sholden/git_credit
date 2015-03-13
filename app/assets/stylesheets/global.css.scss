@@ -1,7 +1,16 @@
 @import "bootstrap-sprockets";
 @import "bootstrap";
 
+.repository-browser-container {
+
+}
+
 .repository-browser {
+  overflow-x: scroll;
+  overflow-style: auto;
+  overflow-y: scroll;
+  max-height: 700px;
+
   .tree-children {
     list-style: none;
   }
