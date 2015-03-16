@@ -123,25 +123,54 @@ var IndexObjectsStore = Reflux.createStore({
   }
 });
 
+var nodeSorter = function(a, b) {
+  var aIsLeaf = _.isEmpty(a.children),
+      bIsLeaf = _.isEmpty(b.children);
+  if (aIsLeaf != bIsLeaf) {
+    return aIsLeaf ? 1 : -1;
+  } else {
+    return a.name.localeCompare(b.name);
+  }
+}
+
 var NavigationNodesStore = Reflux.createStore({
   listenables: {indexObjectChange: IndexObjectsStore},
 
   indexObjectChange: function(indexObjects) {
-    var navNodes = {};
+    var gitObjects = {};
 
     _.each(indexObjects, function(object) {
-      navNodes[object.path] = _.assign(object, {type: 'blob', name: path.basename(object.path)});
+      gitObjects[object.path] = _.assign(object, {type: 'blob', name: path.basename(object.path)});
 
       var dirname = path.dirname(object.path);
-      if (!_.has(navNodes, dirname)) {
-        navNodes[dirname] = {type: 'tree', path: dirname, name: path.basename(dirname), expanded: expandByDefault};
+      if (!_.has(gitObjects, dirname)) {
+        gitObjects[dirname] = {type: 'tree', path: dirname, name: path.basename(dirname)};
       }
     });
 
-    console.log("navNodes: ", navNodes);
-    this.trigger(navNodes);
+    var buildNode = function(node) {
+      return {
+        id: node.path,
+        name: node.name,
+        target: node,
+        children: _.map(getChildNodes(gitObjects, node), buildNode).sort(nodeSorter)
+      }
+    };
+
+    var rootNode = buildNode(gitObjects['.']);
+    this.trigger(rootNode);
   }
 });
+
+var getRootNode = function(navigationNodes) {
+  return navigationNodes[''];
+};
+
+var getChildNodes = function(navigationNodes, parent) {
+  return _.filter(_.values(navigationNodes), function(node) {
+    return node != parent && parent.path === path.dirname(node.path);
+  });
+};
 
 var AnalysisStore = Reflux.createStore({
   listenables: RepositoryActions,
@@ -287,6 +316,152 @@ var TreeNode = React.createClass({
         {toggleIcon} <a href={'#' + this.props.tree.path} className="node-name" onClick={this.selectHandler}>{this.props.tree.name}</a>
         {treeChildren}
       </li>
+    )
+  }
+});
+
+var TreeNode2 = React.createClass({
+  propTypes: {
+    node: React.PropTypes.object,
+    onSelect: React.PropTypes.func,
+    onExpandToggle: React.PropTypes.func
+  },
+
+  getInitialState: function() {
+    return {expanded: !this.isLeaf() && expandByDefault, selected: false}
+  },
+
+  getChildren: function() {
+    return this.props.node.children;
+  },
+
+  isLeaf: function() {
+    return _.isEmpty(this.getChildren());
+  },
+
+  isExpanded: function() {
+    return this.state.expanded;
+  },
+
+  getKey: function(node) {
+    return node.path;
+  },
+
+  _onExpandToggleClick: function(e) {
+    this.setState({expanded: !this.state.expanded});
+
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
+  _onSelectClick: function(e) {
+    if (this.props.onSelect) {
+      this.props.onSelect(this);
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
+  renderToggle: function() {
+    if (this.isLeaf()) return null;
+
+    var toggleIconName = this.isExpanded() ? 'folder-open' : 'folder-close';
+    return <a href="#" onClick={this._onExpandToggleClick}><span className={'glyphicon glyphicon-' + toggleIconName}></span></a>
+  },
+
+  renderLabel: function() {
+    return  <a href={'#' + this.props.node.path} className="node-name" onClick={this._onSelectClick}>{this.props.node.name}</a>
+  },
+
+  renderChildren: function() {
+    var childNodes = _.map(this.getChildren(), function(child) {
+      return (
+        <TreeNode2
+          key={this.getKey(child)}
+          node={child}
+          onExpandToggle={this.props.onExpandToggle}
+          onSelect={this.props.onSelect} />
+      )
+    }, this);
+
+    return <ul className={classNames("tree-children", {hidden: !this.isExpanded()})}>{childNodes}</ul>;
+  },
+
+  render: function() {
+    return (
+      <li className={classNames('node', 'tree', {selected: this.state.selected})}>
+        {this.renderToggle()} {this.renderLabel()}
+        {this.renderChildren()}
+      </li>
+    )
+  }
+});
+
+var TreeView = React.createClass({
+  propTypes: {
+    nodeType: React.PropTypes.object,
+    node: React.PropTypes.object,
+    showRoot: React.PropTypes.bool,
+    onSelect: React.PropTypes.func
+  },
+
+  getInitialState: function() {
+    return { selectedTreeNode: null };
+  },
+
+  _onTreeNodeSelect: function(treeNode) {
+    if (this.state.selectedTreeNode) {
+      this.state.selectedTreeNode.setState({selected: false});
+    }
+
+    treeNode.setState({selected: true});
+    this.setState({selectedTreeNode: treeNode});
+
+    if (this.props.onSelect) {
+      this.props.onSelect(treeNode.props.node);
+    }
+  },
+
+  _onTreeNodeExpandToggle: function(treeNode) {
+    treeNode.setState({expanded: true});
+  },
+
+  render: function() {
+    var rootNodes = this.props.showRoot ? [this.props.node] : this.props.node.children;
+    var treeNodes = _.map(rootNodes, function(node) {
+      return (
+        <TreeNode2
+          node={node}
+          onSelect={this._onTreeNodeSelect}
+          onExpandToggle={this._onTreeNodeExpandToggle}
+        />
+      )
+    }, this);
+
+    return (
+      <ul className="tree-children" >
+      {treeNodes}
+      </ul>
+    )
+  }
+});
+
+var RepositoryBrowser2 = React.createClass({
+  propTypes: {
+    root: React.PropTypes.object
+  },
+
+  onNavigationSelect: function(treeNode) {
+    console.log("Selected ", treeNode);
+    RepositoryActions.nodeSelected(treeNode.target);
+  },
+
+  render: function() {
+    return (
+      <div className="repository-browser">
+        <TreeView node={this.props.root} onSelect={this.onNavigationSelect} />
+      </div>
     )
   }
 });
@@ -449,8 +624,8 @@ var App = React.createClass({
     this.setState({analysis: analysis});
   },
 
-  onNavigationChanged: function(navigationNodes) {
-    this.setState({navigationNodes: navigationNodes});
+  onNavigationChanged: function(navigationRoot) {
+    this.setState({navigationRoot: navigationRoot});
   },
 
   onContentSelected: function(selectedContent) {
@@ -509,7 +684,7 @@ var App = React.createClass({
   render: function() {
     var browser = null;
     if (this.state.analysis) {
-      browser = <RepositoryBrowser analysis={this.state.analysis} />
+      browser = <RepositoryBrowser2 root={this.state.navigationRoot} />
     }
 
     var selectedContent = this.state.selectedContent;
