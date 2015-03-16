@@ -29,6 +29,7 @@ gem 'bootstrap-sass'
 gem 'haml'
 gem 'github_api'
 gem 'github-linguist', require: 'linguist'
+gem 'active_attr'
 # gem 'github-linguist', git: 'https://github.com/github/linguist.git'
 # gem 'github-linguist-grammars', git: 'https://github.com/github/linguist.git'
 

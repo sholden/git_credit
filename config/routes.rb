@@ -59,6 +59,7 @@ Rails.application.routes.draw do
 
   resources :repositories do
     resources :blobs
+    resources :objects
   end
 
   root to: 'app#show'
