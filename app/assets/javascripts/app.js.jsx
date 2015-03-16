@@ -7,6 +7,7 @@ var Bootstrap = require('react-bootstrap');
 var Nav = Bootstrap.Nav;
 var NavItem = Bootstrap.NavItem;
 var Input = Bootstrap.Input;
+var path = require('path');
 
 var RepositoryActions = Reflux.createActions([
   'repositoryChanged',
@@ -34,8 +35,6 @@ var Analysis = function(data) {
     this.analyzed_objects[object.oid] = object;
   }, this);
 };
-
-
 
 Object.assign(Analysis.prototype, {
   getRoot: function() {
@@ -100,7 +99,6 @@ Object.assign(Analysis.prototype, {
   }
 });
 
-
 var RepositoriesStore = Reflux.createStore({
   load: function() {
     var self = this;
@@ -108,6 +106,40 @@ var RepositoriesStore = Reflux.createStore({
     $.getJSON('/repositories').then(function(data) {
       self.trigger(data);
     });
+  }
+});
+
+var IndexObjectsStore = Reflux.createStore({
+  listenables: RepositoryActions,
+
+  onRepositoryChanged: function(repository) {
+    if (repository) {
+      var self = this;
+
+      $.getJSON('/repositories/' + repository.id + '/objects').then(function(objects) {
+        self.trigger(objects);
+      });
+    }
+  }
+});
+
+var NavigationNodesStore = Reflux.createStore({
+  listenables: {indexObjectChange: IndexObjectsStore},
+
+  indexObjectChange: function(indexObjects) {
+    var navNodes = {};
+
+    _.each(indexObjects, function(object) {
+      navNodes[object.path] = _.assign(object, {type: 'blob', name: path.basename(object.path)});
+
+      var dirname = path.dirname(object.path);
+      if (!_.has(navNodes, dirname)) {
+        navNodes[dirname] = {type: 'tree', path: dirname, name: path.basename(dirname), expanded: expandByDefault};
+      }
+    });
+
+    console.log("navNodes: ", navNodes);
+    this.trigger(navNodes);
   }
 });
 
@@ -404,6 +436,7 @@ var RepositorySelect = React.createClass({
 var App = React.createClass({
   mixins: [
     Reflux.listenTo(AnalysisStore, 'onAnalysisChanged'),
+    Reflux.listenTo(NavigationNodesStore, 'onNavigationChanged'),
     Reflux.listenTo(RepositoriesStore, 'onRepositoriesLoaded')
   ],
 
@@ -414,6 +447,10 @@ var App = React.createClass({
   onAnalysisChanged: function(analysis) {
     //console.log('app got analysis');
     this.setState({analysis: analysis});
+  },
+
+  onNavigationChanged: function(navigationNodes) {
+    this.setState({navigationNodes: navigationNodes});
   },
 
   onContentSelected: function(selectedContent) {
