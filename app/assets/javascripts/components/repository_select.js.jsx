@@ -1,6 +1,9 @@
 var _ = require('lodash');
 var React = require('react');
 
+var Bootstrap = require('react-bootstrap');
+var Input = Bootstrap.Input;
+
 var RepositorySelect = React.createClass({
   propTypes: {
     repositories: React.PropTypes.array,

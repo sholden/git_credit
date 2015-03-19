@@ -1,6 +1,7 @@
 var Reflux = require('reflux');
 var $ = require('jquery');
 
+var RepositoryActions = require('../actions/repository_actions');
 var Analysis = require('../models/analysis');
 
 var AnalysisStore = Reflux.createStore({

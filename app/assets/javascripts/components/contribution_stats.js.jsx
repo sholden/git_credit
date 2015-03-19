@@ -3,7 +3,7 @@ var React = require('react');
 
 var ContributionStat = React.createClass({
   propTypes: {
-    contribution: React.props.object.isRequired
+    contribution: React.PropTypes.object.isRequired
   },
 
   render: function() {

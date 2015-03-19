@@ -14,11 +14,10 @@ var ContentEditor = require('./components/content_editor');
 var RepositoryBrowser = require('./components/repository_browser');
 var ContentNav = require('./components/content_nav');
 
-
 var App = React.createClass({
   mixins: [
     Reflux.listenTo(AnalysisStore, 'onAnalysisChanged'),
-    Reflux.listenTo(NavigationNodesStore, 'onNavigationChanged'),
+    Reflux.listenTo(NavigationNodesStore, 'onNavigationLoaded'),
     Reflux.listenTo(RepositoriesStore, 'onRepositoriesLoaded')
   ],
 
@@ -31,8 +30,13 @@ var App = React.createClass({
     this.setState({analysis: analysis});
   },
 
-  onNavigationChanged: function(navigationRoot) {
-    this.setState({navigationRoot: navigationRoot});
+  onNavigationLoaded: function(navigationRoot) {
+    this.setState({selectedObject: null, navigationRoot: navigationRoot});
+  },
+
+  onObjectSelected: function(object) {
+    console.log('object selected', object);
+    this.setState({selectedObject: object});
   },
 
   onContentSelected: function(selectedContent) {
@@ -85,16 +89,12 @@ var App = React.createClass({
   },
 
   renderObjectContent: function() {
-    return <ContentEditor repository={this.state.selectedRepository} object={this.state.analysis.selectedNode} />
+    return <ContentEditor repository={this.state.selectedRepository} object={this.state.selectedObject} />
   },
 
-  render: function() {
-    var browser = null;
-    if (this.state.analysis) {
-      browser = <RepositoryBrowser root={this.state.navigationRoot} />
-    }
-
+  renderContent: function() {
     var selectedContent = this.state.selectedContent;
+
     var contentPane;
     if (selectedContent === 'contributions') {
       contentPane = this.renderContributorStats();
@@ -102,6 +102,19 @@ var App = React.createClass({
       contentPane = this.renderObjectContent();
     }
 
+    return contentPane;
+  },
+
+  renderRepositoryBrowser: function() {
+    var browser = null;
+    if (this.state.navigationRoot) {
+      browser = <RepositoryBrowser root={this.state.navigationRoot} onSelect={this.onObjectSelected} />
+    }
+
+    return browser;
+  },
+
+  render: function() {
     return (
       <div className="app">
         <h1>Git Credit!</h1>
@@ -115,10 +128,10 @@ var App = React.createClass({
         </div>
         <div className="row">
           <div className="col-md-4">
-            {browser}
+            {this.renderRepositoryBrowser()}
           </div>
           <div className="col-md-8">
-            {contentPane}
+            {this.renderContent()}
           </div>
         </div>
       </div>
@@ -129,7 +142,5 @@ var App = React.createClass({
 App.run = function() {
   React.render(<App />, document.getElementById('application'))
 };
-
-
 
 module.exports = App;

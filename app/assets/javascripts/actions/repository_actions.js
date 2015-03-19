@@ -2,7 +2,7 @@ var Reflux = require('reflux');
 
 var RepositoryActions = Reflux.createActions([
   'repositoryChanged',
-  'nodeSelected',
+  'objectSelected',
   'treeToggled',
   'blobContentRequested'
 ]);

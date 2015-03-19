@@ -11,7 +11,8 @@
     "reflux": "latest",
     "es6-shim": "latest",
     "classnames": "latest",
-    "react-ace": "latest"
+    "react-ace": "latest",
+    "jquery": "latest"
   },
   "license": "MIT",
   "engines": {

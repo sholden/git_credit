@@ -61,7 +61,7 @@ var TreeNode = React.createClass({
   renderChildren: function() {
     var childNodes = _.map(this.getChildren(), function(child) {
       return (
-        <TreeNode2
+        <TreeNode
           key={this.getKey(child)}
           node={child}
           onExpandToggle={this.props.onExpandToggle}
