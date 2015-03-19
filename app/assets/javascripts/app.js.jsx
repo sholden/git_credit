@@ -73,13 +73,11 @@ var App = React.createClass({
 
   renderContributorStats: function() {
     var statsComponent;
-    if (this.state.analysis && this.state.analysis.selectedNode) {
-      var contribution_stats = this.state.analysis.getContributionStats(this.state.analysis.selectedNode);
+    if (this.state.analysis && this.state.selectedObject) {
+      var contribution_stats = this.state.analysis.getContributionStats(this.state.selectedObject);
 
       statsComponent = (
         <ContributionStats
-          analysis={this.state.analysis}
-          object={this.state.analysis.selectedNode}
           contribution_stats={contribution_stats}
         />
       )

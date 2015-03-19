@@ -22,8 +22,6 @@ var ContributionStat = React.createClass({
 
 var ContributionStats = React.createClass({
   propTypes: {
-    analysis: React.PropTypes.object.isRequired,
-    object: React.PropTypes.object.isRequired,
     contribution_stats: React.PropTypes.array.isRequired
   },
 
@@ -55,3 +53,5 @@ var ContributionStats = React.createClass({
     )
   }
 });
+
+module.exports = ContributionStats;
