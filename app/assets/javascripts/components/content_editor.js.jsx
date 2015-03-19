@@ -1,6 +1,6 @@
 var React = require('react');
 var Reflux = require('reflux');
-var AceEditor = require('react-ace');
+var AceEditor = require('./better_ace_editor');
 var RepositoryActions = require('../actions/repository_actions');
 var BlobContentStore = require('../stores/blob_content_store');
 
@@ -18,22 +18,29 @@ var ContentEditor = React.createClass({
     return {content: null};
   },
 
-  componentDidMount: function() {
-    RepositoryActions.blobContentRequested(this.props.repository, this.props.object);
+  onBlobContentLoaded: function(content) {
+    this.setState({content: content, contentFor: this.props.object});
   },
 
-  onBlobContentLoaded: function(content) {
-    this.setState({content: content});
+  isContentLoaded: function() {
+    return this.state.content && this.state.contentFor == this.props.object;
   },
 
   render: function() {
-    if (!this.state.content) { return <p>No content</p> }
+    if (!this.isContentLoaded()) {
+      RepositoryActions.blobContentRequested(this.props.repository, this.props.object);
+      return <p>No content</p>
+    }
+
+    var language = this.state.contentFor.language;
 
     return <AceEditor
-      mode="java"
+      mode={language && language.ace_mode || 'plain_text'}
       theme="github"
-      name={'ACE_' + this.props.object.oid}
+      name={"ace_" + this.state.contentFor}
       value={this.state.content}
+      readOnly={true}
+      width="100%"
     />
   }
 });

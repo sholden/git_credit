@@ -12,7 +12,8 @@
     "es6-shim": "latest",
     "classnames": "latest",
     "react-ace": "latest",
-    "jquery": "latest"
+    "jquery": "latest",
+    "brace": "latest"
   },
   "license": "MIT",
   "engines": {
